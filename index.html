@@ -22,16 +22,22 @@
           Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
       }
     </style>
-    <!-- Scripts for React, Babel, and UUID -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/uuid@latest/dist/umd/uuid.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
   <body>
     <div id="root"></div>
-
+    
+    <!-- Scripts moved to the end of body to ensure DOM is ready and libraries load in order -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
     <script type="text/babel">
+      function uuidv4() {
+        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+      }
+
       // --- START OF TYPES ---
       const ItemCategory = {
         Login: "Login/Senha",
@@ -185,7 +191,7 @@
           }
         };
 
-        const saveItems = async (pin, newItems) => {
+        const saveItems = React.useCallback(async (pin, newItems) => {
           try {
             const encrypted = await encryptVault(newItems, pin);
             saveVault(encrypted);
@@ -194,22 +200,22 @@
             setError("Could not save changes to your vault.");
             throw e; // Re-throw to inform caller of failure
           }
-        };
+        }, []);
         
-        const addItem = async (item, pin) => {
-          const newItem = { ...item, id: uuid.v4() };
+        const addItem = React.useCallback(async (item, pin) => {
+          const newItem = { ...item, id: uuidv4() };
           await saveItems(pin, [...items, newItem]);
-        };
+        }, [items, saveItems]);
 
-        const updateItem = async (updatedItem, pin) => {
+        const updateItem = React.useCallback(async (updatedItem, pin) => {
           const newItems = items.map((item) => item.id === updatedItem.id ? updatedItem : item);
           await saveItems(pin, newItems);
-        };
+        }, [items, saveItems]);
 
-        const deleteItem = async (id, pin) => {
+        const deleteItem = React.useCallback(async (id, pin) => {
           const newItems = items.filter((item) => item.id !== id);
           await saveItems(pin, newItems);
-        };
+        }, [items, saveItems]);
         
         return { items, isUnlocked, hasPin, error, isLoading, lock, setupPin, unlock, addItem, updateItem, deleteItem };
       };
@@ -284,13 +290,50 @@
         const [pin, setPin] = React.useState('');
         const [showPinModal, setShowPinModal] = React.useState(false);
         const [actionType, setActionType] = React.useState(null);
+        const [isProcessing, setIsProcessing] = React.useState(false);
+        const [pinError, setPinError] = React.useState(null);
+        const [pinAttempt, setPinAttempt] = React.useState(0);
+
         const handleChange = (e) => { const { name, value } = e.target; setFormData((prev) => ({ ...prev, [name]: value })); };
-        const handleActionAttempt = (type) => { if (type === 'save' && !formData.title) return; setActionType(type); setShowPinModal(true); }
-        const handlePinConfirm = async () => { if (pin.length < 4) return; try { if (actionType === 'save') { await onSave(item ? { ...item, ...formData } : formData, pin); } else if (actionType === 'delete' && item) { await onDelete(item.id, pin); } } catch (e) { console.error("Action failed:", e); } finally { resetPinModal(); } }
-        const resetPinModal = () => { setShowPinModal(false); setPin(''); setActionType(null); }
+        
+        const handleActionAttempt = (type) => { 
+            if (type === 'save' && !formData.title) return; 
+            setActionType(type); 
+            setShowPinModal(true); 
+        };
+
+        const handlePinConfirm = async () => {
+            if (pin.length < 4 || isProcessing) return;
+            setIsProcessing(true);
+            setPinError(null);
+            try {
+                if (actionType === 'save') {
+                    await onSave(item ? { ...item, ...formData } : formData, pin);
+                } else if (actionType === 'delete' && item) {
+                    await onDelete(item.id, pin);
+                }
+                // On success, the component will unmount via parent state change, so no need to reset state here.
+            } catch (e) {
+                console.error("Action failed:", e);
+                setPinError("Ação falhou. Verifique o PIN e tente novamente.");
+                setIsProcessing(false); // Allow retry
+                setPinAttempt(a => a + 1); // This will reset the VirtualKeyboard
+            }
+        };
+
+        const resetPinModal = () => {
+            setShowPinModal(false);
+            setPin('');
+            setActionType(null);
+            setIsProcessing(false);
+            setPinError(null);
+            setPinAttempt(0);
+        };
+
         const getPrimaryLabel = () => { switch (formData.category) { case ItemCategory.CreditCard: return "Número do Cartão"; case ItemCategory.WiFi: return "Nome da Rede (SSID)"; default: return "Usuário / E-mail"; } };
         const getSecondaryLabel = () => { switch (formData.category) { case ItemCategory.CreditCard: return "CVV"; case ItemCategory.WiFi: return "Senha"; default: return "Senha"; } };
-        return (<><div className="flex flex-col h-full"><header className="flex items-center justify-between mb-6"><button onClick={onCancel} className="p-2 -ml-2 text-gray-400 hover:text-white"><BackIcon /></button><h2 className="text-lg font-bold">{item ? "Editar Item" : "Adicionar Item"}</h2><button onClick={() => handleActionAttempt('save')} className={`p-2 -mr-2 ${!formData.title ? 'text-gray-600' : 'text-blue-400 hover:text-blue-300'}`} disabled={!formData.title}><CheckIcon /></button></header><form className="space-y-4 flex-grow"><div><label htmlFor="title" className="block text-sm font-medium text-gray-400">Título</label><input type="text" name="title" id="title" value={formData.title} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required /></div><div><label htmlFor="category" className="block text-sm font-medium text-gray-400">Categoria</label><select name="category" id="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">{Object.values(ItemCategory).map((cat) => <option key={cat} value={cat}>{cat}</option>)}</select></div><div><label htmlFor="primaryField" className="block text-sm font-medium text-gray-400">{getPrimaryLabel()}</label><input type="text" name="primaryField" id="primaryField" value={formData.primaryField} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div><div><label htmlFor="secondaryField" className="block text-sm font-medium text-gray-400">{getSecondaryLabel()}</label><input type="password" name="secondaryField" id="secondaryField" value={formData.secondaryField} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div><div><label htmlFor="notes" className="block text-sm font-medium text-gray-400">Notas</label><textarea name="notes" id="notes" rows={4} value={formData.notes} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div></form>{item && (<div className="mt-auto pt-4"><button onClick={() => handleActionAttempt('delete')} className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"><DeleteIcon /><span className="ml-2">Excluir Item</span></button></div>)}</div>{showPinModal && (<div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"><div className="bg-[#161b22] p-6 rounded-lg shadow-xl w-full max-w-sm"><h3 className="text-lg font-bold text-center mb-2">Confirme seu PIN</h3><p className="text-center text-gray-400 mb-4">Para sua segurança, por favor, insira seu PIN para {actionType === 'save' ? 'salvar' : 'excluir'}.</p><div className="flex justify-center space-x-3 my-4">{[...Array(6)].map((_, i) => (<div key={i} className={`w-4 h-4 rounded-full border-2 border-gray-600 ${pin.length > i ? "bg-blue-400 border-blue-400" : ""}`}></div>))}</div><div className="my-4"><VirtualKeyboard onKeyPress={setPin} /></div><div className="flex gap-4 mt-6"><button onClick={resetPinModal} className="w-full py-2 px-4 bg-gray-700 rounded-md hover:bg-gray-600">Cancelar</button><button onClick={handlePinConfirm} className="w-full py-2 px-4 bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-500" disabled={pin.length < 4}>Confirmar</button></div></div></div>)}</>);
+
+        return (<><div className="flex flex-col h-full"><header className="flex items-center justify-between mb-6"><button onClick={onCancel} className="p-2 -ml-2 text-gray-400 hover:text-white"><BackIcon /></button><h2 className="text-lg font-bold">{item ? "Editar Item" : "Adicionar Item"}</h2><button onClick={() => handleActionAttempt('save')} className={`p-2 -mr-2 ${!formData.title ? 'text-gray-600' : 'text-blue-400 hover:text-blue-300'}`} disabled={!formData.title}><CheckIcon /></button></header><form className="space-y-4 flex-grow"><div><label htmlFor="title" className="block text-sm font-medium text-gray-400">Título</label><input type="text" name="title" id="title" value={formData.title} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required /></div><div><label htmlFor="category" className="block text-sm font-medium text-gray-400">Categoria</label><select name="category" id="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">{Object.values(ItemCategory).map((cat) => <option key={cat} value={cat}>{cat}</option>)}</select></div><div><label htmlFor="primaryField" className="block text-sm font-medium text-gray-400">{getPrimaryLabel()}</label><input type="text" name="primaryField" id="primaryField" value={formData.primaryField} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div><div><label htmlFor="secondaryField" className="block text-sm font-medium text-gray-400">{getSecondaryLabel()}</label><input type="password" name="secondaryField" id="secondaryField" value={formData.secondaryField} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div><div><label htmlFor="notes" className="block text-sm font-medium text-gray-400">Notas</label><textarea name="notes" id="notes" rows={4} value={formData.notes} onChange={handleChange} className="mt-1 block w-full bg-[#0d1117] border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div></form>{item && (<div className="mt-auto pt-4"><button onClick={() => handleActionAttempt('delete')} className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"><DeleteIcon /><span className="ml-2">Excluir Item</span></button></div>)}</div>{showPinModal && (<div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"><div className="bg-[#161b22] p-6 rounded-lg shadow-xl w-full max-w-sm"><h3 className="text-lg font-bold text-center mb-2">Confirme seu PIN</h3><p className="text-center text-gray-400 mb-4">Para sua segurança, por favor, insira seu PIN para {actionType === 'save' ? 'salvar' : 'excluir'}.</p>{pinError && <p className="text-red-400 my-2 text-center text-sm h-5">{pinError}</p>}{!pinError && <div className="my-2 h-5"></div>}<div className="flex justify-center space-x-3 my-4">{[...Array(6)].map((_, i) => (<div key={i} className={`w-4 h-4 rounded-full border-2 border-gray-600 ${pin.length > i ? "bg-blue-400 border-blue-400" : ""}`}></div>))}</div><div className="my-4"><VirtualKeyboard key={pinAttempt} onKeyPress={(newPin) => { if (pinError) setPinError(null); setPin(newPin);}} /></div><div className="flex gap-4 mt-6"><button onClick={resetPinModal} className="w-full py-2 px-4 bg-gray-700 rounded-md hover:bg-gray-600" disabled={isProcessing}>Cancelar</button><button onClick={handlePinConfirm} className="w-full py-2 px-4 bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-500 flex justify-center items-center" disabled={pin.length < 4 || isProcessing}>{isProcessing ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : 'Confirmar'}</button></div></div></div>)}</>);
       };
 
       // --- START OF ITEMLIST COMPONENT ---
