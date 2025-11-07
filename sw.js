@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minicofre-cache-v5'; // Bumped version to ensure update
+const CACHE_NAME = 'minicofre-cache-v6'; // Bumped version to ensure update
 const urlsToCache = [
   './',
   './index.html',
@@ -7,7 +7,7 @@ const urlsToCache = [
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
-  'https://unpkg.com/uuid@latest/dist/umd/uuidv4.min.js',
+  'https://unpkg.com/uuid@latest/dist/umd/uuid.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js'
 ];
 
