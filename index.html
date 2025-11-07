@@ -32,11 +32,12 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <script type="text/babel">
-      function uuidv4() {
+      // Internal, reliable UUIDv4 generator. No external dependency needed.
+      const uuidv4 = () => {
         return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+          (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
         );
-      }
+      };
 
       // --- START OF TYPES ---
       const ItemCategory = {
@@ -193,27 +194,39 @@
 
         const saveItems = React.useCallback(async (pin, newItems) => {
           try {
+            // CRITICAL: Verify PIN by decrypting first to prevent data corruption.
+            const storedVault = loadVault();
+            if (storedVault) {
+              await decryptVault(storedVault, pin); // This will throw if PIN is wrong
+            } else {
+              throw new Error("Cannot save: vault not found.");
+            }
+            
+            // If decryption is successful, proceed to encrypt and save
             const encrypted = await encryptVault(newItems, pin);
             saveVault(encrypted);
             setItems(newItems);
           } catch (e) {
-            setError("Could not save changes to your vault.");
+            console.error("Save failed:", e);
             throw e; // Re-throw to inform caller of failure
           }
         }, []);
         
         const addItem = React.useCallback(async (item, pin) => {
           const newItem = { ...item, id: uuidv4() };
-          await saveItems(pin, [...items, newItem]);
+          const currentItems = items; // Capture current items from state
+          await saveItems(pin, [...currentItems, newItem]);
         }, [items, saveItems]);
 
         const updateItem = React.useCallback(async (updatedItem, pin) => {
-          const newItems = items.map((item) => item.id === updatedItem.id ? updatedItem : item);
+          const currentItems = items; // Capture current items from state
+          const newItems = currentItems.map((item) => item.id === updatedItem.id ? updatedItem : item);
           await saveItems(pin, newItems);
         }, [items, saveItems]);
 
         const deleteItem = React.useCallback(async (id, pin) => {
-          const newItems = items.filter((item) => item.id !== id);
+          const currentItems = items; // Capture current items from state
+          const newItems = currentItems.filter((item) => item.id !== id);
           await saveItems(pin, newItems);
         }, [items, saveItems]);
         
