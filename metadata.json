@@ -1,5 +1,5 @@
 {
-  "name": "Copy of MiniCofre - Secure Local Vault",
+  "name": "MiniCofre - Secure Local Vault - GIT",
   "description": "A simple and secure local vault for managing passwords, Wi-Fi codes, cards, and other sensitive information. All data is encrypted with a PIN and stored only on your device.",
   "requestFramePermissions": []
 }
