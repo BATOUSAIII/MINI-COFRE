@@ -1,15 +1,14 @@
-const CACHE_NAME = 'minicofre-cache-v4'; // Bumped version to ensure update
+const CACHE_NAME = 'minicofre-cache-v5'; // Bumped version to ensure update
 const urlsToCache = [
   './',
   './index.html',
-  './index.tsx',
   './manifest.json',
   './assets/icon.svg',
   'https://cdn.tailwindcss.com',
-  'https://aistudiocdn.com/react@^19.2.0',
-  'https://aistudiocdn.com/react-dom@^19.2.0/',
-  'https://aistudiocdn.com/react@^19.2.0/',
-  'https://aistudiocdn.com/uuid@^13.0.0'
+  'https://unpkg.com/react@18/umd/react.production.min.js',
+  'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+  'https://unpkg.com/uuid@latest/dist/umd/uuidv4.min.js',
+  'https://unpkg.com/@babel/standalone/babel.min.js'
 ];
 
 self.addEventListener('install', event => {
@@ -53,12 +52,8 @@ self.addEventListener('fetch', event => {
           return fetch(event.request).then(
             response => {
               // Check if we received a valid response
-              if(!response || response.status !== 200 || response.type !== 'basic') {
-                if (response && response.type === 'opaque') {
-                    // Opaque responses are fine, just can't cache them
-                    return response;
-                }
-                return response;
+              if(!response || response.status !== 200) {
+                 return response;
               }
 
               // IMPORTANT: Clone the response. A response is a stream
