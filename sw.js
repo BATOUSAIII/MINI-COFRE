@@ -1,10 +1,10 @@
-const CACHE_NAME = 'minicofre-cache-v3'; // Bumped version to ensure update
+const CACHE_NAME = 'minicofre-cache-v4'; // Bumped version to ensure update
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/index.tsx',
-  '/manifest.json',
-  '/assets/icon.svg',
+  './',
+  './index.html',
+  './index.tsx',
+  './manifest.json',
+  './assets/icon.svg',
   'https://cdn.tailwindcss.com',
   'https://aistudiocdn.com/react@^19.2.0',
   'https://aistudiocdn.com/react-dom@^19.2.0/',
