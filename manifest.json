@@ -1,0 +1,17 @@
+{
+  "name": "MiniCofre",
+  "short_name": "MiniCofre",
+  "description": "Um cofre local simples e seguro para gerenciar senhas, códigos Wi-Fi, cartões e outras informações sensíveis. Todos os dados são criptografados com um PIN e armazenados apenas no seu dispositivo.",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#161b22"
+}
