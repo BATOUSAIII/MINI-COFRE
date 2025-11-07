@@ -1,22 +1,14 @@
-const CACHE_NAME = 'minicofre-cache-v1';
+const CACHE_NAME = 'minicofre-cache-v2'; // Bumped version to ensure update
 const urlsToCache = [
   '/',
   '/index.html',
   '/index.tsx',
-  '/App.tsx',
-  '/types.ts',
-  '/hooks/useVault.ts',
-  '/services/cryptoService.ts',
-  '/services/storageService.ts',
-  '/services/googleService.ts',
-  '/components/LockScreen.tsx',
-  '/components/Vault.tsx',
-  '/components/ItemList.tsx',
-  '/components/ItemForm.tsx',
-  '/components/ViewItem.tsx',
-  '/components/VirtualKeyboard.tsx',
-  '/components/common/Icons.tsx',
+  '/manifest.json',
   '/assets/icon.svg',
+  'https://cdn.tailwindcss.com',
+  'https://aistudiocdn.com/react@^19.2.0',
+  'https://aistudiocdn.com/react-dom@^19.2.0/',
+  'https://aistudiocdn.com/uuid@^13.0.0',
 ];
 
 self.addEventListener('install', event => {
@@ -47,23 +39,10 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   event.respondWith(
-    // Network falling back to cache
-    fetch(event.request).then(response => {
-      // If the request is successful, update the cache
-      if (response.status === 200) {
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
-        });
-      }
-      return response;
-    }).catch(() => {
+    // Try network first
+    fetch(event.request).catch(() => {
       // If the network fails, serve from cache
-      return caches.match(event.request).then(response => {
-        if (response) {
-          return response;
-        }
-      });
+      return caches.match(event.request);
     })
   );
 });
