@@ -1,11 +1,13 @@
-const CACHE_NAME = 'minicofre-cache-v8'; // Bumped version to ensure update
+const CACHE_NAME = 'minicofre-cache-v7'; // Bumped version to ensure update
 const urlsToCache = [
   './',
   './index.html',
-  './index.tsx',
   './manifest.json',
   './assets/icon.svg',
-  'https://cdn.tailwindcss.com'
+  'https://cdn.tailwindcss.com',
+  'https://unpkg.com/react@18/umd/react.production.min.js',
+  'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+  'https://unpkg.com/@babel/standalone/babel.min.js'
 ];
 
 self.addEventListener('install', event => {
