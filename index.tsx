@@ -20,7 +20,7 @@ export interface VaultItem {
   secondaryField?: string;
   notes?: string;
 }
-
+  
 export interface StoredVault {
   iv: string;
   salt: string;
