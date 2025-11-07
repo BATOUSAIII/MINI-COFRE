@@ -425,6 +425,13 @@
             unlock(pin);
           }
         };
+        
+        const handleBackToCreate = () => {
+          setIsConfirming(false);
+          setPin("");
+          setConfirmPin("");
+          setLocalError(null);
+        };
 
         const getSubtitle = () => {
           if (!hasPin) {
@@ -442,6 +449,14 @@
             <h1 className="text-2xl font-bold mb-2">{hasPin ? "Bem-vindo" : "Configurar MiniCofre"}</h1>
             <p className="text-gray-400 mb-6">{getSubtitle()}</p>
             
+            {isConfirming && (
+              <div className="mb-4">
+                <button onClick={handleBackToCreate} className="text-blue-400 hover:underline">
+                  &larr; Voltar
+                </button>
+              </div>
+            )}
+
             <div className="flex justify-center space-x-3 my-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className={`w-4 h-4 rounded-full border-2 border-gray-600 ${currentPin.length > i ? "bg-blue-400 border-blue-400" : ""}`}></div>
