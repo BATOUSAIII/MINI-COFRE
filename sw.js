@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minicofre-cache-v2'; // Bumped version to ensure update
+const CACHE_NAME = 'minicofre-cache-v3'; // Bumped version to ensure update
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,15 +8,18 @@ const urlsToCache = [
   'https://cdn.tailwindcss.com',
   'https://aistudiocdn.com/react@^19.2.0',
   'https://aistudiocdn.com/react-dom@^19.2.0/',
-  'https://aistudiocdn.com/uuid@^13.0.0',
+  'https://aistudiocdn.com/react@^19.2.0/',
+  'https://aistudiocdn.com/uuid@^13.0.0'
 ];
 
 self.addEventListener('install', event => {
+  // Perform install steps
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker: Caching app shell');
-        return cache.addAll(urlsToCache);
+        console.log('Opened cache');
+        // Add all essential assets to the cache
+        return cache.addAll(urlsToCache.map(url => new Request(url, { cache: 'reload' })));
       })
   );
 });
@@ -37,12 +40,41 @@ self.addEventListener('activate', event => {
   );
 });
 
+
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    // Try network first
-    fetch(event.request).catch(() => {
-      // If the network fails, serve from cache
-      return caches.match(event.request);
-    })
-  );
+    event.respondWith(
+      caches.match(event.request)
+        .then(response => {
+          // Cache hit - return response
+          if (response) {
+            return response;
+          }
+
+          return fetch(event.request).then(
+            response => {
+              // Check if we received a valid response
+              if(!response || response.status !== 200 || response.type !== 'basic') {
+                if (response && response.type === 'opaque') {
+                    // Opaque responses are fine, just can't cache them
+                    return response;
+                }
+                return response;
+              }
+
+              // IMPORTANT: Clone the response. A response is a stream
+              // and because we want the browser to consume the response
+              // as well as the cache consuming the response, we need
+              // to clone it so we have two streams.
+              const responseToCache = response.clone();
+
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, responseToCache);
+                });
+
+              return response;
+            }
+          );
+        })
+    );
 });
