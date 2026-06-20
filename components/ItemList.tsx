@@ -27,17 +27,21 @@ const CategoryIcon: React.FC<{ category: ItemCategory }> = ({ category }) => {
 };
 
 const ItemList: React.FC<ItemListProps> = ({
-  items,
+// INÍCIO DA ALTERAÇÃO
+  items = [],
+// FIM DA ALTERAÇÃO
   onSelectItem,
   onAddNew,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredItems = items.filter(
+// INÍCIO DA ALTERAÇÃO
+  const filteredItems = (items || []).filter(
     (item) =>
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      item?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item?.notes?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+// FIM DA ALTERAÇÃO
 
   return (
     <div className="h-full flex flex-col">
