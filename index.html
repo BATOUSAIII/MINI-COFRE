@@ -4,15 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MiniCofre</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#161b22"/>
-    <link rel="manifest" href="manifest.json" />
-    <link rel="apple-touch-icon" href="assets/icon.svg">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MiniCofre">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
@@ -22,19 +13,21 @@
           Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
       }
     </style>
-  </head>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "jwt-decode": "https://aistudiocdn.com/jwt-decode@^4.0.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-    <!-- PWA Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(registration => { console.log('SW registration successful'); })
-            .catch(error => { console.log('SW registration failed: ', error); });
-        });
-      }
-    </script>
   </body>
 </html>
